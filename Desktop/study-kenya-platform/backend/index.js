@@ -1,5 +1,3 @@
-# Create a new file with the correct CORS configuration
-@'
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -314,19 +312,10 @@ async function sendEmailNotifications(name, email, message) {
 
 // --- MIDDLEWARE ---
 app.use(helmet());
-// ✅ UPDATED CORS CONFIGURATION - Allows Vercel frontend
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    "https://study-kenya-platform.vercel.app",
-    "https://study-kenya-platform-*.vercel.app",
-    "https://*.vercel.app"
-  ],
+  origin: "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -365,105 +354,6 @@ const validateContact = (req, res, next) => {
 };
 
 app.use((req, res, next) => { console.log(`📡 ${req.method} ${req.url}`); next(); });
-
-// ============================================
-// ✅ NEW TEST ROUTES ADDED HERE
-// ============================================
-
-// Root route - API information
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Study Kenya Platform API is running!',
-    status: 'online',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    documentation: 'https://github.com/arcendala-byte/study-kenya-platform',
-    endpoints: {
-      public: {
-        health: 'GET /health',
-        universities: 'GET /api/universities',
-        universities_detail: 'GET /api/universities/:identifier',
-        blog: 'GET /api/blog',
-        blog_detail: 'GET /api/blog/:slug',
-        contact: 'POST /api/contact'
-      },
-      protected: {
-        admin_login: 'POST /api/admin/login',
-        admin_stats: 'GET /api/admin/stats',
-        create_university: 'POST /api/universities',
-        update_university: 'PUT /api/universities/:id',
-        delete_university: 'DELETE /api/universities/:identifier',
-        inquiries: 'GET /api/inquiries',
-        applications: 'GET /api/applications',
-        create_blog: 'POST /api/blog',
-        update_blog: 'PUT /api/blog/:id',
-        delete_blog: 'DELETE /api/blog/:id'
-      },
-      websocket: {
-        admin_dashboard: 'ws://localhost:8080/ws/admin'
-      }
-    },
-    contact: {
-      email: CONTACT_EMAIL,
-      phone: CONTACT_PHONE,
-      whatsapp: `wa.me/${WHATSAPP_NUMBER}`
-    }
-  });
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    database: 'Supabase connected',
-    websocket: 'Active',
-    email: transporter ? 'Configured' : 'Disabled',
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// API test endpoint - shows available routes
-app.get('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API test endpoint is working!',
-    timestamp: new Date().toISOString(),
-    available_endpoints: {
-      public: [
-        'GET /',
-        'GET /health',
-        'GET /api/test',
-        'GET /api/universities',
-        'GET /api/universities/:id',
-        'GET /api/blog',
-        'GET /api/blog/:slug',
-        'POST /api/contact'
-      ],
-      protected: [
-        'POST /api/admin/login',
-        'GET /api/admin/stats',
-        'POST /api/universities',
-        'PUT /api/universities/:id',
-        'DELETE /api/universities/:identifier',
-        'GET /api/inquiries',
-        'PATCH /api/inquiries/:id',
-        'DELETE /api/inquiries/:id',
-        'GET /api/applications',
-        'PATCH /api/applications/:id',
-        'DELETE /api/applications/:id',
-        'POST /api/blog',
-        'PUT /api/blog/:id',
-        'DELETE /api/blog/:id'
-      ]
-    }
-  });
-});
-
-// ============================================
-// END OF NEW TEST ROUTES
-// ============================================
 
 // --- INIT SUPABASE & SEED ---
 async function initSupabaseAndSeed() {
@@ -1012,4 +902,3 @@ function startHttpServer() {
     console.log(`💬 WhatsApp: wa.me/${WHATSAPP_NUMBER}`);
   });
 }
-'@ | Out-File -FilePath backend\index.js -Encoding utf8
