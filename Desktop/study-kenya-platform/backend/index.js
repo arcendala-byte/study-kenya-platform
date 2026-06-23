@@ -355,6 +355,68 @@ const validateContact = (req, res, next) => {
 
 app.use((req, res, next) => { console.log(`📡 ${req.method} ${req.url}`); next(); });
 
+// ============================================
+// ✅ ROOT ROUTES - ADDED HERE
+// ============================================
+
+// Root route
+app.get('/', (req, res) => {
+  console.log('✅ Root route accessed');
+  res.json({
+    message: '🚀 Study Kenya Platform API is running!',
+    status: 'online',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: 'GET /health',
+      test: 'GET /api/test',
+      ping: 'GET /api/ping',
+      universities: 'GET /api/universities',
+      contact: 'POST /api/contact',
+      admin: 'POST /api/admin/login'
+    }
+  });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  console.log('✅ Health route accessed');
+  res.json({
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    database: 'Supabase connected',
+    websocket: 'Active',
+    email: transporter ? 'Configured' : 'Disabled',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// API test
+app.get('/api/test', (req, res) => {
+  console.log('✅ Test route accessed');
+  res.json({
+    success: true,
+    message: 'API test endpoint is working!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Ping
+app.get('/api/ping', (req, res) => {
+  console.log('✅ Ping route accessed');
+  res.json({
+    success: true,
+    message: 'pong',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ============================================
+// END OF ROOT ROUTES
+// ============================================
+
 // --- INIT SUPABASE & SEED ---
 async function initSupabaseAndSeed() {
   try {
