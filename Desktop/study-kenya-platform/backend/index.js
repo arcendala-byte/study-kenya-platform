@@ -313,9 +313,17 @@ async function sendEmailNotifications(name, email, message) {
 // --- MIDDLEWARE ---
 app.use(helmet());
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "https://study-kenya-platform.vercel.app",
+    "https://study-kenya-platform-*.vercel.app",
+    "https://*.vercel.app"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -356,10 +364,10 @@ const validateContact = (req, res, next) => {
 app.use((req, res, next) => { console.log(`📡 ${req.method} ${req.url}`); next(); });
 
 // ============================================
-// ✅ ROOT ROUTES - ADDED HERE
+// ✅ ALL ROUTES DEFINED HERE - BEFORE SERVER STARTS
 // ============================================
 
-// Root route
+// --- ROOT ROUTES ---
 app.get('/', (req, res) => {
   console.log('✅ Root route accessed');
   res.json({
@@ -378,7 +386,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check
 app.get('/health', (req, res) => {
   console.log('✅ Health route accessed');
   res.json({
@@ -387,77 +394,25 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'Supabase connected',
     websocket: 'Active',
-    email: transporter ? 'Configured' : 'Disabled',
-    environment: process.env.NODE_ENV || 'development'
+    email: transporter ? 'Configured' : 'Disabled'
   });
 });
 
-// API test
 app.get('/api/test', (req, res) => {
   console.log('✅ Test route accessed');
   res.json({
     success: true,
     message: 'API test endpoint is working!',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Ping
-app.get('/api/ping', (req, res) => {
-  console.log('✅ Ping route accessed');
-  res.json({
-    success: true,
-    message: 'pong',
     timestamp: new Date().toISOString()
   });
 });
 
-// ============================================
-// END OF ROOT ROUTES
-// ============================================
-
-// --- INIT SUPABASE & SEED ---
-async function initSupabaseAndSeed() {
-  try {
-    const { error: pingErr } = await supabase.from('admins').select('id').limit(1);
-    if (pingErr) console.warn('Supabase ping warning (tables may not exist):', pingErr.message);
-
-    const { data: admins, error: adminErr } = await supabase.from('admins').select('*').limit(1);
-    if (adminErr) {
-      console.warn('Could not check admins table:', adminErr.message);
-    } else if (!admins || admins.length === 0) {
-      const hashed = await bcrypt.hash('password123', 10);
-      const { error: insertErr } = await supabase.from('admins').insert([{ email: 'admin@studykenya.com', password: hashed }]);
-      if (insertErr) console.warn('Failed to insert default admin:', insertErr.message);
-      else console.log('👤 Default admin created: admin@studykenya.com / password123');
-    }
-
-    setupRealtimeSubscriptions();
-    startHttpServer();
-  } catch (err) {
-    console.error('Supabase initialization error:', err.message || err);
-    if (!START_WITHOUT_DB) process.exit(1);
-    console.warn('START_WITHOUT_DB=true — starting server without DB connectivity.');
-    startHttpServer();
-  }
-}
-
-// --- INITIALIZE ---
-async function initialize() {
-  await initializeEmail();
-  await initSupabaseAndSeed();
-}
-
-initialize();
-
-// ========================================
-// ROUTES
-// ========================================
+app.get('/api/ping', (req, res) => {
+  console.log('✅ Ping route accessed');
+  res.json({ success: true, message: 'pong', timestamp: new Date().toISOString() });
+});
 
 // --- 1. Universities Routes ---
-
-// GET all universities
 app.get('/api/universities', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -476,7 +431,6 @@ app.get('/api/universities', async (req, res) => {
   }
 });
 
-// GET university by ID or slug
 app.get('/api/universities/:identifier', async (req, res, next) => {
   try {
     const { identifier } = req.params;
@@ -512,7 +466,6 @@ app.get('/api/universities/:identifier', async (req, res, next) => {
   }
 });
 
-// POST create university
 app.post('/api/universities', requireAuth, async (req, res, next) => {
   try {
     const payload = req.body;
@@ -540,7 +493,6 @@ app.post('/api/universities', requireAuth, async (req, res, next) => {
   }
 });
 
-// PUT update university
 app.put('/api/universities/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -570,7 +522,6 @@ app.put('/api/universities/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-// DELETE university
 app.delete('/api/universities/:identifier', requireAuth, async (req, res, next) => {
   try {
     const { identifier } = req.params;
@@ -596,8 +547,6 @@ app.delete('/api/universities/:identifier', requireAuth, async (req, res, next) 
 });
 
 // --- 2. Applications Routes ---
-
-// GET all applications
 app.get('/api/applications', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -621,7 +570,6 @@ app.get('/api/applications', requireAuth, async (req, res) => {
   }
 });
 
-// PATCH update application status
 app.patch('/api/applications/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -644,7 +592,6 @@ app.patch('/api/applications/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-// DELETE application
 app.delete('/api/applications/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -665,8 +612,6 @@ app.delete('/api/applications/:id', requireAuth, async (req, res, next) => {
 });
 
 // --- 3. Inquiries Routes ---
-
-// GET all inquiries
 app.get('/api/inquiries', requireAuth, async (req, res) => {
   try {
     console.log('📡 Fetching inquiries...');
@@ -688,7 +633,6 @@ app.get('/api/inquiries', requireAuth, async (req, res) => {
   }
 });
 
-// PATCH update inquiry status
 app.patch('/api/inquiries/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -711,7 +655,6 @@ app.patch('/api/inquiries/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-// DELETE inquiry
 app.delete('/api/inquiries/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -732,8 +675,6 @@ app.delete('/api/inquiries/:id', requireAuth, async (req, res, next) => {
 });
 
 // --- 4. Admin Routes ---
-
-// Admin Login
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -771,7 +712,6 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Dashboard Stats
 app.get('/api/admin/stats', requireAuth, async (req, res) => {
   try {
     const [universities, inquiries, blogPosts, applications] = await Promise.all([
@@ -794,8 +734,6 @@ app.get('/api/admin/stats', requireAuth, async (req, res) => {
 });
 
 // --- 5. Blog Routes ---
-
-// GET all blog posts
 app.get('/api/blog', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -815,7 +753,6 @@ app.get('/api/blog', async (req, res) => {
   }
 });
 
-// GET blog post by slug
 app.get('/api/blog/:slug', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -841,7 +778,6 @@ app.get('/api/blog/:slug', async (req, res) => {
   }
 });
 
-// POST create blog post
 app.post('/api/blog', requireAuth, async (req, res, next) => {
   try {
     const payload = req.body;
@@ -861,7 +797,6 @@ app.post('/api/blog', requireAuth, async (req, res, next) => {
   }
 });
 
-// PUT update blog post
 app.put('/api/blog/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -884,7 +819,6 @@ app.put('/api/blog/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-// DELETE blog post
 app.delete('/api/blog/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -905,8 +839,6 @@ app.delete('/api/blog/:id', requireAuth, async (req, res, next) => {
 });
 
 // --- 6. Contact Routes ---
-
-// POST contact form with validation
 app.post('/api/contact', validateContact, async (req, res, next) => {
   try {
     const { name, email, message } = req.body;
@@ -920,18 +852,15 @@ app.post('/api/contact', validateContact, async (req, res, next) => {
 
     if (error) {
       console.error('❌ Database error (contact):', error);
-      // Still try to send email
     } else {
       console.log('✅ Inquiry saved to database successfully');
-      console.log('📊 Inquiry data:', data);
     }
 
-    // Always send email notifications, regardless of DB outcome
+    // Always send email notifications
     sendEmailNotifications(name, email, message).catch(err => {
       console.error('❌ Background email sending failed:', err);
     });
 
-    // Respond to the client with success
     res.status(201).json({
       success: true,
       message: 'Message sent successfully! We will respond within 24 hours.',
@@ -952,7 +881,10 @@ app.use((req, res, next) => {
 });
 app.use(errorHandler);
 
-// --- Start Server ---
+// ============================================
+// ✅ START SERVER - ONLY AFTER ALL ROUTES ARE DEFINED
+// ============================================
+
 function startHttpServer() {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 BACKEND ACTIVE ON: http://localhost:${PORT}`);
@@ -962,5 +894,48 @@ function startHttpServer() {
     console.log(`📬 Contact Email: ${CONTACT_EMAIL}`);
     console.log(`📱 Contact Phone: ${CONTACT_PHONE}`);
     console.log(`💬 WhatsApp: wa.me/${WHATSAPP_NUMBER}`);
+    console.log(`📡 Routes registered:`);
+    console.log(`   GET /`);
+    console.log(`   GET /health`);
+    console.log(`   GET /api/test`);
+    console.log(`   GET /api/ping`);
+    console.log(`   GET /api/universities`);
+    console.log(`   POST /api/contact`);
+    console.log(`   POST /api/admin/login`);
   });
 }
+
+// --- INIT SUPABASE & SEED ---
+async function initSupabaseAndSeed() {
+  try {
+    const { error: pingErr } = await supabase.from('admins').select('id').limit(1);
+    if (pingErr) console.warn('Supabase ping warning (tables may not exist):', pingErr.message);
+
+    const { data: admins, error: adminErr } = await supabase.from('admins').select('*').limit(1);
+    if (adminErr) {
+      console.warn('Could not check admins table:', adminErr.message);
+    } else if (!admins || admins.length === 0) {
+      const hashed = await bcrypt.hash('password123', 10);
+      const { error: insertErr } = await supabase.from('admins').insert([{ email: 'admin@studykenya.com', password: hashed }]);
+      if (insertErr) console.warn('Failed to insert default admin:', insertErr.message);
+      else console.log('👤 Default admin created: admin@studykenya.com / password123');
+    }
+
+    setupRealtimeSubscriptions();
+    startHttpServer();
+  } catch (err) {
+    console.error('Supabase initialization error:', err.message || err);
+    if (!START_WITHOUT_DB) process.exit(1);
+    console.warn('START_WITHOUT_DB=true — starting server without DB connectivity.');
+    startHttpServer();
+  }
+}
+
+// --- INITIALIZE ---
+async function initialize() {
+  await initializeEmail();
+  await initSupabaseAndSeed();
+}
+
+// ✅ Start the server
+initialize();
