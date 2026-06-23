@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "node test-server.js",
+    "dev": "nodemon test-server.js",
     "check-db": "node check_supabase.js",
     "seed": "node seed.js",
     "seed:admin": "node seed.js --admin-only",
